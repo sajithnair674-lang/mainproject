@@ -1,6 +1,5 @@
-from django.shortcuts import render
+from django.contrib.auth import get_user_model
 
-# Create your views here.
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -8,10 +7,10 @@ from rest_framework.views import APIView
 
 from .models import Project, ProjectMember
 from .serializers import ProjectSerializer, ProjectMemberSerializer
+
 from tasks.models import ActivityLog
 
 
-from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
@@ -20,6 +19,7 @@ class ProjectListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+
         projects = Project.objects.all()
 
         serializer = ProjectSerializer(
@@ -44,6 +44,7 @@ class ProjectListCreateView(APIView):
         )
 
         if serializer.is_valid():
+
             project = serializer.save(
                 created_by=request.user
             )
@@ -71,8 +72,10 @@ class ProjectDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self, pk):
+
         try:
             return Project.objects.get(pk=pk)
+
         except Project.DoesNotExist:
             return None
 
@@ -82,7 +85,9 @@ class ProjectDetailView(APIView):
 
         if project is None:
             return Response(
-                {'error': 'Project not found.'},
+                {
+                    'error': 'Project not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -104,7 +109,9 @@ class ProjectDetailView(APIView):
 
         if project is None:
             return Response(
-                {'error': 'Project not found.'},
+                {
+                    'error': 'Project not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -114,9 +121,12 @@ class ProjectDetailView(APIView):
         )
 
         if serializer.is_valid():
+
             serializer.save()
 
-            return Response(serializer.data)
+            return Response(
+                serializer.data
+            )
 
         return Response(
             serializer.errors,
@@ -137,7 +147,9 @@ class ProjectDetailView(APIView):
 
         if project is None:
             return Response(
-                {'error': 'Project not found.'},
+                {
+                    'error': 'Project not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -151,8 +163,6 @@ class ProjectDetailView(APIView):
         )
 
 
-#     allow Admin/Manager to add users to a project and view the members of a project.
-
 class ProjectMemberListCreateView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -160,10 +170,16 @@ class ProjectMemberListCreateView(APIView):
     def get(self, request, project_id):
 
         try:
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.get(
+                id=project_id
+            )
+
         except Project.DoesNotExist:
+
             return Response(
-                {'error': 'Project not found.'},
+                {
+                    'error': 'Project not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -176,7 +192,9 @@ class ProjectMemberListCreateView(APIView):
             many=True
         )
 
-        return Response(serializer.data)
+        return Response(
+            serializer.data
+        )
 
     def post(self, request, project_id):
 
@@ -189,26 +207,41 @@ class ProjectMemberListCreateView(APIView):
             )
 
         try:
-            project = Project.objects.get(id=project_id)
+            project = Project.objects.get(
+                id=project_id
+            )
+
         except Project.DoesNotExist:
+
             return Response(
-                {'error': 'Project not found.'},
+                {
+                    'error': 'Project not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
         user_id = request.data.get('user')
 
         if not user_id:
+
             return Response(
-                {'error': 'User ID is required.'},
+                {
+                    'error': 'User ID is required.'
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(
+                id=user_id
+            )
+
         except User.DoesNotExist:
+
             return Response(
-                {'error': 'User not found.'},
+                {
+                    'error': 'User not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -216,6 +249,7 @@ class ProjectMemberListCreateView(APIView):
             project=project,
             user=user
         ).exists():
+
             return Response(
                 {
                     'error': 'User is already a member of this project.'
@@ -228,7 +262,9 @@ class ProjectMemberListCreateView(APIView):
             user=user
         )
 
-        serializer = ProjectMemberSerializer(member)
+        serializer = ProjectMemberSerializer(
+            member
+        )
 
         return Response(
             serializer.data,

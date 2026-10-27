@@ -1,11 +1,21 @@
-from django.contrib.auth import authenticate
+
+from django.contrib.auth import authenticate, get_user_model
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, LoginSerializer
+from .serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    UserListSerializer
+)
+
+
+User = get_user_model()
 
 
 class RegisterView(APIView):
@@ -118,3 +128,19 @@ class ProfileView(APIView):
                 ),
             }
         )
+
+
+class UserListView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        users = User.objects.all().order_by("username")
+
+        serializer = UserListSerializer(
+            users,
+            many=True
+        )
+
+        return Response(serializer.data)
