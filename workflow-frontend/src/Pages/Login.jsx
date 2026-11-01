@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import API from "../services/Api";
 import "../App.css";
 
@@ -24,7 +24,6 @@ function Login() {
                 password: password,
             });
 
-            // Store JWT tokens
             localStorage.setItem(
                 "access_token",
                 response.data.access
@@ -35,7 +34,6 @@ function Login() {
                 response.data.refresh
             );
 
-            // Store user information
             if (response.data.user) {
                 localStorage.setItem(
                     "user",
@@ -43,13 +41,13 @@ function Login() {
                 );
             }
 
-            // Navigate to dashboard
             navigate("/dashboard");
 
         } catch (error) {
             console.error(
                 "Login error:",
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setError(
@@ -58,6 +56,7 @@ function Login() {
                 error.response?.data?.non_field_errors?.[0] ||
                 "Invalid username or password. Please try again."
             );
+
         } finally {
             setLoading(false);
         }
@@ -65,30 +64,62 @@ function Login() {
 
     return (
         <div className="login-page">
+
             <div className="login-container">
 
+                {/* BRAND */}
 
-                <h1 className="login-brand">
-                    WorkFlow<span> Pro</span>
-                </h1>
+                <div className="login-brand-wrapper">
 
-                <h2>Welcome back!</h2>
+                    <div className="login-brand-icon">
+                        W
+                    </div>
 
-                <p className="login-subtitle">
-                    Sign in to continue to your workspace.
-                </p>
+                    <h1 className="login-brand">
+                        WorkFlow
+                    </h1>
+
+                </div>
+
+
+                {/* INTRO */}
+
+                <div className="login-heading">
+
+                    <h2>
+                        Welcome back!
+                    </h2>
+
+                    <p className="login-subtitle">
+                        Sign in to continue to your workspace.
+                    </p>
+
+                </div>
+
+
+                {/* ERROR */}
 
                 {error && (
-                    <div className="login-error" role="alert">
+
+                    <div
+                        className="login-error"
+                        role="alert"
+                    >
                         {error}
                     </div>
+
                 )}
+
+
+                {/* LOGIN FORM */}
 
                 <form
                     onSubmit={handleLogin}
                     className="login-form"
                 >
+
                     <div className="login-field">
+
                         <label htmlFor="username">
                             Username
                         </label>
@@ -99,14 +130,20 @@ function Login() {
                             placeholder="Enter your username"
                             value={username}
                             onChange={(e) =>
-                                setUsername(e.target.value)
+                                setUsername(
+                                    e.target.value
+                                )
                             }
                             autoComplete="username"
                             required
+                            disabled={loading}
                         />
+
                     </div>
 
+
                     <div className="login-field">
+
                         <label htmlFor="password">
                             Password
                         </label>
@@ -117,33 +154,66 @@ function Login() {
                             placeholder="Enter your password"
                             value={password}
                             onChange={(e) =>
-                                setPassword(e.target.value)
+                                setPassword(
+                                    e.target.value
+                                )
                             }
                             autoComplete="current-password"
                             required
+                            disabled={loading}
                         />
+
                     </div>
+
 
                     <button
                         type="submit"
                         disabled={loading}
                     >
-                        {loading ? "Signing in..." : "Sign In"}
-                        {!loading && <span> →</span>}
+                        {loading
+                            ? "Signing in..."
+                            : "Sign In"}
+
+                        {!loading && (
+                            <span> →</span>
+                        )}
                     </button>
+
                 </form>
 
+
+                {/* GUEST REGISTRATION */}
+
+               <p className="register-login-link">
+                     Don't have an account?{" "}
+                       <Link to="/register">
+                     Register as Guest
+                     </Link>
+                </p>
+
+
+                {/* SECURITY NOTE */}
+
                 <div className="login-footer">
+
                     <span className="footer-dot"></span>
+
                     Secure workspace access
+
                 </div>
 
             </div>
 
+
+
+            {/* COPYRIGHT */}
+
             <p className="login-copyright">
-                © {new Date().getFullYear()} WorkFlow Pro.
+                © {new Date().getFullYear()} WorkFlow.
                 All rights reserved.
             </p>
+
+
         </div>
     );
 }

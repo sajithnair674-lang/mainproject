@@ -9,6 +9,5 @@ urlpatterns = [
     path('<int:task_id>/attachments/', TaskAttachmentListCreateView.as_view(),name='task-attachments'),
     path(  'activities/', ActivityLogListView.as_view(),name='activity-list'),
     path( 'notifications/', NotificationListView.as_view(),name='notification-list'),
-    path( 'notifications/', NotificationListView.as_view(),name='notification-list'),
     path( 'notifications/unread-count/', NotificationUnreadCountView.as_view(), name='notification-unread-count'),
 ]

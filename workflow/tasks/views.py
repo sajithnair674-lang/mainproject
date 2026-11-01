@@ -1,3 +1,4 @@
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -30,13 +31,13 @@ class TaskListCreateView(APIView):
 
     # ==========================================================
     # GET - List Tasks
+    # ADMIN and GUEST can see all tasks
     # ==========================================================
     def get(self, request):
 
         user = request.user
 
-        # ADMIN can see all tasks
-        if user.role == 'ADMIN':
+        if user.role in ['ADMIN', 'GUEST']:
 
             tasks = Task.objects.all()
 
@@ -58,13 +59,10 @@ class TaskListCreateView(APIView):
 
         tasks = tasks.distinct().order_by('-created_at')
 
-        # ------------------------------------------------------
         # Search
-        # ------------------------------------------------------
         search = request.query_params.get('search')
 
         if search:
-
             from django.db.models import Q
 
             tasks = tasks.filter(
@@ -72,42 +70,31 @@ class TaskListCreateView(APIView):
                 Q(description__icontains=search)
             )
 
-        # ------------------------------------------------------
         # Status Filter
-        # ------------------------------------------------------
         status_filter = request.query_params.get('status')
 
         if status_filter:
-
             tasks = tasks.filter(
                 status=status_filter
             )
 
-        # ------------------------------------------------------
         # Priority Filter
-        # ------------------------------------------------------
         priority_filter = request.query_params.get('priority')
 
         if priority_filter:
-
             tasks = tasks.filter(
                 priority=priority_filter
             )
 
-        # ------------------------------------------------------
         # Project Filter
-        # ------------------------------------------------------
         project_filter = request.query_params.get('project')
 
         if project_filter:
-
             tasks = tasks.filter(
                 project_id=project_filter
             )
 
-        # ------------------------------------------------------
         # Pagination
-        # ------------------------------------------------------
         paginator = TaskPagination()
 
         page = paginator.paginate_queryset(
@@ -126,10 +113,10 @@ class TaskListCreateView(APIView):
 
     # ==========================================================
     # POST - Create Task
+    # Only ADMIN and MANAGER
     # ==========================================================
     def post(self, request):
 
-        # Only ADMIN and MANAGER can create tasks
         if request.user.role not in ['ADMIN', 'MANAGER']:
 
             return Response(
@@ -141,11 +128,8 @@ class TaskListCreateView(APIView):
 
         project_id = request.data.get('project')
 
-        # ------------------------------------------------------
         # Check Project
-        # ------------------------------------------------------
         try:
-
             project = Project.objects.get(
                 id=project_id
             )
@@ -163,9 +147,7 @@ class TaskListCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ------------------------------------------------------
-        # MANAGER Project Access
-        # ------------------------------------------------------
+        # Manager Project Access
         if request.user.role != 'ADMIN':
 
             has_access = ProjectMember.objects.filter(
@@ -182,9 +164,7 @@ class TaskListCreateView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # ------------------------------------------------------
         # Validate Task
-        # ------------------------------------------------------
         serializer = TaskSerializer(
             data=request.data
         )
@@ -195,9 +175,7 @@ class TaskListCreateView(APIView):
                 created_by=request.user
             )
 
-            # --------------------------------------------------
             # Activity Log
-            # --------------------------------------------------
             ActivityLog.objects.create(
                 user=request.user,
                 action='TASK_CREATED',
@@ -206,10 +184,7 @@ class TaskListCreateView(APIView):
                 description=f"Created task '{task.title}'"
             )
 
-            # --------------------------------------------------
             # Notification
-            # Notify assigned user when task is created
-            # --------------------------------------------------
             if task.assigned_to:
 
                 Notification.objects.create(
@@ -240,31 +215,23 @@ class TaskDetailView(APIView):
     def get_object(self, pk):
 
         try:
-
-            return Task.objects.get(
-                pk=pk
-            )
+            return Task.objects.get(pk=pk)
 
         except Task.DoesNotExist:
-
             return None
 
     # ==========================================================
     # Check Task Access
+    # ADMIN and GUEST can view all tasks
     # ==========================================================
     def has_access(self, user, task):
 
-        # ADMIN has full access
-        if user.role == 'ADMIN':
-
+        if user.role in ['ADMIN', 'GUEST']:
             return True
 
-        # Assigned user has access
         if task.assigned_to == user:
-
             return True
 
-        # Project member has access
         return ProjectMember.objects.filter(
             project=task.project,
             user=user
@@ -286,10 +253,7 @@ class TaskDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if not self.has_access(
-            request.user,
-            task
-        ):
+        if not self.has_access(request.user, task):
 
             return Response(
                 {
@@ -300,14 +264,22 @@ class TaskDetailView(APIView):
 
         serializer = TaskSerializer(task)
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
     # ==========================================================
     # PUT - Update Task
+    # GUEST cannot update
     # ==========================================================
     def put(self, request, pk):
+
+        if request.user.role == 'GUEST':
+
+            return Response(
+                {
+                    'error': 'Guest accounts have read-only access.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         task = self.get_object(pk)
 
@@ -322,15 +294,10 @@ class TaskDetailView(APIView):
 
         user = request.user
 
-        # ------------------------------------------------------
         # Save old assigned user
-        # Used to detect assignment changes
-        # ------------------------------------------------------
         old_assignee = task.assigned_to
 
-        # ------------------------------------------------------
         # MEMBER
-        # ------------------------------------------------------
         if user.role == 'MEMBER':
 
             if task.assigned_to != user:
@@ -342,9 +309,7 @@ class TaskDetailView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # ------------------------------------------------------
         # MANAGER
-        # ------------------------------------------------------
         elif user.role == 'MANAGER':
 
             has_access = ProjectMember.objects.filter(
@@ -361,9 +326,7 @@ class TaskDetailView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # ------------------------------------------------------
         # ADMIN automatically has access
-        # ------------------------------------------------------
 
         serializer = TaskSerializer(
             task,
@@ -374,9 +337,7 @@ class TaskDetailView(APIView):
 
             task = serializer.save()
 
-            # --------------------------------------------------
             # Activity Log
-            # --------------------------------------------------
             ActivityLog.objects.create(
                 user=request.user,
                 action='TASK_UPDATED',
@@ -385,10 +346,7 @@ class TaskDetailView(APIView):
                 description=f"Updated task '{task.title}'"
             )
 
-            # --------------------------------------------------
-            # Notification
-            # Notify only if assignee changed
-            # --------------------------------------------------
+            # Notify if assignee changed
             if (
                 task.assigned_to
                 and task.assigned_to != old_assignee
@@ -412,8 +370,18 @@ class TaskDetailView(APIView):
 
     # ==========================================================
     # DELETE - Delete Task
+    # Only ADMIN and MANAGER
     # ==========================================================
     def delete(self, request, pk):
+
+        if request.user.role == 'GUEST':
+
+            return Response(
+                {
+                    'error': 'Guest accounts have read-only access.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         task = self.get_object(pk)
 
@@ -426,9 +394,6 @@ class TaskDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # ------------------------------------------------------
-        # Only ADMIN and MANAGER
-        # ------------------------------------------------------
         if request.user.role not in ['ADMIN', 'MANAGER']:
 
             return Response(
@@ -438,9 +403,7 @@ class TaskDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # ------------------------------------------------------
-        # MANAGER Project Access
-        # ------------------------------------------------------
+        # Manager Project Access
         if request.user.role == 'MANAGER':
 
             has_access = ProjectMember.objects.filter(
@@ -457,15 +420,10 @@ class TaskDetailView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-        # ------------------------------------------------------
-        # Save information before deleting
-        # ------------------------------------------------------
         task_title = task.title
         project = task.project
 
-        # ------------------------------------------------------
         # Activity Log
-        # ------------------------------------------------------
         ActivityLog.objects.create(
             user=request.user,
             action='TASK_DELETED',
@@ -487,32 +445,22 @@ class TaskCommentListCreateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    # ==========================================================
     # Get Task
-    # ==========================================================
     def get_task(self, task_id):
 
         try:
-
-            return Task.objects.get(
-                id=task_id
-            )
+            return Task.objects.get(id=task_id)
 
         except Task.DoesNotExist:
-
             return None
 
-    # ==========================================================
     # Check Access
-    # ==========================================================
     def has_access(self, user, task):
 
-        if user.role == 'ADMIN':
-
+        if user.role in ['ADMIN', 'GUEST']:
             return True
 
         if task.assigned_to == user:
-
             return True
 
         return ProjectMember.objects.filter(
@@ -536,10 +484,7 @@ class TaskCommentListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if not self.has_access(
-            request.user,
-            task
-        ):
+        if not self.has_access(request.user, task):
 
             return Response(
                 {
@@ -557,14 +502,22 @@ class TaskCommentListCreateView(APIView):
             many=True
         )
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
     # ==========================================================
     # POST - Add Comment
+    # GUEST cannot comment
     # ==========================================================
     def post(self, request, task_id):
+
+        if request.user.role == 'GUEST':
+
+            return Response(
+                {
+                    'error': 'Guest accounts cannot add comments.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         task = self.get_task(task_id)
 
@@ -577,10 +530,7 @@ class TaskCommentListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if not self.has_access(
-            request.user,
-            task
-        ):
+        if not self.has_access(request.user, task):
 
             return Response(
                 {
@@ -602,9 +552,7 @@ class TaskCommentListCreateView(APIView):
                 user=request.user
             )
 
-            # --------------------------------------------------
             # Activity Log
-            # --------------------------------------------------
             ActivityLog.objects.create(
                 user=request.user,
                 action='COMMENT_ADDED',
@@ -628,32 +576,22 @@ class TaskAttachmentListCreateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    # ==========================================================
     # Get Task
-    # ==========================================================
     def get_task(self, task_id):
 
         try:
-
-            return Task.objects.get(
-                id=task_id
-            )
+            return Task.objects.get(id=task_id)
 
         except Task.DoesNotExist:
-
             return None
 
-    # ==========================================================
     # Check Access
-    # ==========================================================
     def has_access(self, user, task):
 
-        if user.role == 'ADMIN':
-
+        if user.role in ['ADMIN', 'GUEST']:
             return True
 
         if task.assigned_to == user:
-
             return True
 
         return ProjectMember.objects.filter(
@@ -677,10 +615,7 @@ class TaskAttachmentListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if not self.has_access(
-            request.user,
-            task
-        ):
+        if not self.has_access(request.user, task):
 
             return Response(
                 {
@@ -701,14 +636,22 @@ class TaskAttachmentListCreateView(APIView):
             }
         )
 
-        return Response(
-            serializer.data
-        )
+        return Response(serializer.data)
 
     # ==========================================================
     # POST - Upload Attachment
+    # GUEST cannot upload
     # ==========================================================
     def post(self, request, task_id):
+
+        if request.user.role == 'GUEST':
+
+            return Response(
+                {
+                    'error': 'Guest accounts cannot upload attachments.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         task = self.get_task(task_id)
 
@@ -721,10 +664,7 @@ class TaskAttachmentListCreateView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if not self.has_access(
-            request.user,
-            task
-        ):
+        if not self.has_access(request.user, task):
 
             return Response(
                 {
@@ -750,9 +690,7 @@ class TaskAttachmentListCreateView(APIView):
                 uploaded_by=request.user
             )
 
-            # --------------------------------------------------
             # Activity Log
-            # --------------------------------------------------
             ActivityLog.objects.create(
                 user=request.user,
                 action='ATTACHMENT_ADDED',
@@ -783,10 +721,11 @@ class ActivityLogListView(APIView):
 
     # ==========================================================
     # GET - Activity Logs
+    # ADMIN and GUEST see all activities
     # ==========================================================
     def get(self, request):
 
-        if request.user.role == 'ADMIN':
+        if request.user.role in ['ADMIN', 'GUEST']:
 
             activities = ActivityLog.objects.all()
 
@@ -796,13 +735,9 @@ class ActivityLogListView(APIView):
                 user=request.user
             )
 
-        activities = activities.order_by(
-            '-created_at'
-        )
+        activities = activities.order_by('-created_at')
 
-        # ------------------------------------------------------
         # Action Filter
-        # ------------------------------------------------------
         action = request.query_params.get('action')
 
         if action:
@@ -811,9 +746,7 @@ class ActivityLogListView(APIView):
                 action=action
             )
 
-        # ------------------------------------------------------
         # Pagination
-        # ------------------------------------------------------
         paginator = ActivityPagination()
 
         page = paginator.paginate_queryset(
@@ -835,6 +768,7 @@ class NotificationListView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    # GET - View Notifications
     def get(self, request):
 
         notifications = Notification.objects.filter(
@@ -848,28 +782,44 @@ class NotificationListView(APIView):
 
         return Response(serializer.data)
 
+    # PATCH - Mark Notification as Read
     def patch(self, request, pk):
 
+        if request.user.role == 'GUEST':
+
+            return Response(
+                {
+                    'error': 'Guest accounts have read-only access.'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         try:
+
             notification = Notification.objects.get(
                 id=pk,
                 recipient=request.user
             )
+
         except Notification.DoesNotExist:
+
             return Response(
-                {'error': 'Notification not found.'},
+                {
+                    'error': 'Notification not found.'
+                },
                 status=status.HTTP_404_NOT_FOUND
             )
 
         notification.is_read = True
         notification.save()
 
-        return Response({
-            'message': 'Notification marked as read.',
-            'id': notification.id,
-            'is_read': notification.is_read
-        })
-
+        return Response(
+            {
+                'message': 'Notification marked as read.',
+                'id': notification.id,
+                'is_read': notification.is_read
+            }
+        )
 
 
 class NotificationUnreadCountView(APIView):
@@ -883,6 +833,8 @@ class NotificationUnreadCountView(APIView):
             is_read=False
         ).count()
 
-        return Response({
-            'unread_count': count
-        })
+        return Response(
+            {
+                'unread_count': count
+            }
+        )

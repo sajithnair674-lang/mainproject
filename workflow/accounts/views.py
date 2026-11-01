@@ -136,6 +136,12 @@ class UserListView(APIView):
 
     def get(self, request):
 
+        if request.user.role == 'GUEST':
+            return Response(
+                {'error': 'You do not have permission to view users.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         users = User.objects.all().order_by("username")
 
         serializer = UserListSerializer(

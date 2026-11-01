@@ -15,6 +15,7 @@ function Tasks() {
     const [priority, setPriority] = useState("");
     const [search, setSearch] = useState("");
 
+
     const fetchTasks = async () => {
 
         try {
@@ -90,6 +91,107 @@ function Tasks() {
             task.project_name ||
             task.project?.name ||
             `Project #${task.project || "-"}`
+        );
+
+    };
+
+
+    const formatStatus = (value) => {
+
+        if (!value) {
+            return "-";
+        }
+
+        return value
+            .replaceAll("_", " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (char) =>
+                char.toUpperCase()
+            );
+
+    };
+
+
+    const formatPriority = (value) => {
+
+        if (!value) {
+            return "-";
+        }
+
+        return value
+            .replaceAll("_", " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (char) =>
+                char.toUpperCase()
+            );
+
+    };
+
+
+    const getStatusClass = (value) => {
+
+        switch (value) {
+
+            case "TODO":
+                return "task-status todo";
+
+            case "IN_PROGRESS":
+                return "task-status in-progress";
+
+            case "IN_REVIEW":
+                return "task-status in-review";
+
+            case "COMPLETED":
+                return "task-status completed";
+
+            case "BLOCKED":
+                return "task-status blocked";
+
+            default:
+                return "task-status";
+
+        }
+
+    };
+
+
+    const getPriorityClass = (value) => {
+
+        switch (value) {
+
+            case "LOW":
+                return "task-priority low";
+
+            case "MEDIUM":
+                return "task-priority medium";
+
+            case "HIGH":
+                return "task-priority high";
+
+            case "URGENT":
+                return "task-priority urgent";
+
+            default:
+                return "task-priority";
+
+        }
+
+    };
+
+
+    const formatDate = (date) => {
+
+        if (!date) {
+            return "-";
+        }
+
+        return new Date(date).toLocaleDateString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
         );
 
     };
@@ -291,6 +393,10 @@ function Tasks() {
                                     Status
                                 </th>
 
+                                <th>
+                                    Due Date
+                                </th>
+
                             </tr>
 
                         </thead>
@@ -301,6 +407,8 @@ function Tasks() {
                             {tasks.map((task) => (
 
                                 <tr key={task.id}>
+
+                                    {/* TASK */}
 
                                     <td>
 
@@ -328,33 +436,70 @@ function Tasks() {
                                     </td>
 
 
-                                    <td>
-                                        {getProjectName(task)}
-                                    </td>
-
-
-                                    <td>
-                                        {getAssignedUser(task)}
-                                    </td>
-
+                                    {/* PROJECT */}
 
                                     <td>
 
-                                        <span className="task-badge">
-
-                                            {task.priority}
-
+                                        <span className="task-project-name">
+                                            {getProjectName(task)}
                                         </span>
 
                                     </td>
 
 
+                                    {/* ASSIGNED USER */}
+
                                     <td>
 
-                                        <span className="task-badge">
+                                        <span className="task-assignee">
+                                            {getAssignedUser(task)}
+                                        </span>
 
-                                            {task.status}
+                                    </td>
 
+
+                                    {/* PRIORITY */}
+
+                                    <td>
+
+                                        <span
+                                            className={getPriorityClass(
+                                                task.priority
+                                            )}
+                                        >
+                                            {formatPriority(
+                                                task.priority
+                                            )}
+                                        </span>
+
+                                    </td>
+
+
+                                    {/* STATUS */}
+
+                                    <td>
+
+                                        <span
+                                            className={getStatusClass(
+                                                task.status
+                                            )}
+                                        >
+                                            {formatStatus(
+                                                task.status
+                                            )}
+                                        </span>
+
+                                    </td>
+
+
+                                    {/* DUE DATE */}
+
+                                    <td>
+
+                                        <span className="task-due-date">
+                                            {formatDate(
+                                                task.due_date
+                                            )}
                                         </span>
 
                                     </td>

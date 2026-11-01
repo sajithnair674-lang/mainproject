@@ -20,16 +20,15 @@ class RegisterSerializer(serializers.ModelSerializer):
             'password',
             'first_name',
             'last_name',
-            'role',
             'profile_image',
         )
 
     def create(self, validated_data):
-
         password = validated_data.pop('password')
 
         user = User.objects.create_user(
             password=password,
+            role='GUEST',
             **validated_data
         )
 

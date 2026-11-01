@@ -2,15 +2,42 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
+import {
+    LayoutDashboard,
+    FolderKanban,
+    ListChecks,
+    Bell,
+    LogOut,
+    Menu,
+    X,
+    Workflow,
+} from "lucide-react";
+
 function Navbar() {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
 
     const menuItems = [
-        { path: "/dashboard", icon: "⌂", label: "Dashboard" },
-        { path: "/projects", icon: "▣", label: "Projects" },
-        { path: "/tasks", icon: "✓", label: "Tasks" },
-        { path: "/notifications", icon: "♢", label: "Notifications" },
+        {
+            path: "/dashboard",
+            icon: LayoutDashboard,
+            label: "Dashboard",
+        },
+        {
+            path: "/projects",
+            icon: FolderKanban,
+            label: "Projects",
+        },
+        {
+            path: "/tasks",
+            icon: ListChecks,
+            label: "Tasks",
+        },
+        {
+            path: "/notifications",
+            icon: Bell,
+            label: "Notifications",
+        },
     ];
 
     const closeMenu = () => setMenuOpen(false);
@@ -19,13 +46,26 @@ function Navbar() {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("user");
+
         closeMenu();
         navigate("/login");
     };
 
+    const renderBrand = (className, iconClassName) => (
+        <>
+            <span className={iconClassName}>
+                <Workflow size={23} strokeWidth={2.2} />
+            </span>
+            <span>{className === "mobile-brand" ? "WorkFlow" : "WorkFlow"}</span>
+        </>
+    );
+
     return (
         <>
+            {/* MOBILE HEADER */}
+
             <header className="mobile-header">
+
                 <button
                     type="button"
                     className="mobile-menu-button"
@@ -33,7 +73,7 @@ function Navbar() {
                     aria-label="Toggle navigation"
                     aria-expanded={menuOpen}
                 >
-                    {menuOpen ? "✕" : "☰"}
+                    {menuOpen ? <X size={23} /> : <Menu size={23} />}
                 </button>
 
                 <button
@@ -41,8 +81,7 @@ function Navbar() {
                     className="mobile-brand"
                     onClick={() => navigate("/dashboard")}
                 >
-                    <span className="mobile-brand-icon">W</span>
-                    <span>WorkFlow</span>
+                    {renderBrand("mobile-brand", "mobile-brand-icon")}
                 </button>
 
                 <button
@@ -51,9 +90,12 @@ function Navbar() {
                     onClick={() => navigate("/notifications")}
                     aria-label="Open notifications"
                 >
-                    ♧
+                    <Bell size={21} />
                 </button>
+
             </header>
+
+            {/* MOBILE BACKDROP */}
 
             {menuOpen && (
                 <button
@@ -64,11 +106,14 @@ function Navbar() {
                 />
             )}
 
+            {/* SIDEBAR */}
+
             <aside
                 className={`workflow-sidebar ${
                     menuOpen ? "mobile-sidebar-open" : ""
                 }`}
             >
+
                 <button
                     type="button"
                     className="sidebar-logo"
@@ -77,64 +122,92 @@ function Navbar() {
                         closeMenu();
                     }}
                 >
-                    <span className="sidebar-logo-icon">W</span>
-                    <span>WorkFlow</span>
+                    {renderBrand("sidebar-logo", "sidebar-logo-icon")}
                 </button>
 
                 <nav className="sidebar-menu">
-                    {menuItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            end={item.path === "/dashboard"}
-                            onClick={closeMenu}
-                            className={({ isActive }) =>
-                                isActive
-                                    ? "sidebar-link active"
-                                    : "sidebar-link"
-                            }
-                        >
-                            <span className="sidebar-icon">
-                                {item.icon}
-                            </span>
-                            <span>{item.label}</span>
-                        </NavLink>
-                    ))}
+
+                    {menuItems.map((item) => {
+                        const Icon = item.icon;
+
+                        return (
+                            <NavLink
+                                key={item.path}
+                                to={item.path}
+                                end={item.path === "/dashboard"}
+                                onClick={closeMenu}
+                                className={({ isActive }) =>
+                                    isActive
+                                        ? "sidebar-link active"
+                                        : "sidebar-link"
+                                }
+                            >
+                                <Icon
+                                    className="sidebar-icon"
+                                    size={20}
+                                    strokeWidth={2}
+                                />
+
+                                <span>{item.label}</span>
+                            </NavLink>
+                        );
+                    })}
+
                 </nav>
 
+                {/* LOGOUT */}
+
                 <div className="sidebar-bottom">
+
                     <button
                         type="button"
                         className="sidebar-logout"
                         onClick={handleLogout}
                     >
-                        <span className="sidebar-icon">⇥</span>
+                        <LogOut
+                            className="sidebar-icon"
+                            size={20}
+                        />
+
                         <span>Logout</span>
                     </button>
+
                 </div>
+
             </aside>
+
+            {/* MOBILE BOTTOM NAVIGATION */}
 
             <nav
                 className="mobile-bottom-nav"
                 aria-label="Mobile navigation"
             >
-                {menuItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.path === "/dashboard"}
-                        className={({ isActive }) =>
-                            isActive
-                                ? "mobile-bottom-link active"
-                                : "mobile-bottom-link"
-                        }
-                    >
-                        <span className="mobile-bottom-icon">
-                            {item.icon}
-                        </span>
-                        <span>{item.label}</span>
-                    </NavLink>
-                ))}
+
+                {menuItems.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            end={item.path === "/dashboard"}
+                            className={({ isActive }) =>
+                                isActive
+                                    ? "mobile-bottom-link active"
+                                    : "mobile-bottom-link"
+                            }
+                        >
+                            <Icon
+                                className="mobile-bottom-icon"
+                                size={21}
+                                strokeWidth={2}
+                            />
+
+                            <span>{item.label}</span>
+                        </NavLink>
+                    );
+                })}
+
             </nav>
         </>
     );
